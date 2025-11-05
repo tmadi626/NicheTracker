@@ -132,7 +132,7 @@ export async function createIdea(idea: {
   problem?: string
   solution?: string
   audience?: string
-  status?: string
+  status?: 'Backlog' | 'Exploring' | 'Validating' | 'Building' | 'Launched'
   impact?: number
   confidence?: number
   effort?: number
