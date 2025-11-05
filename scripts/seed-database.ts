@@ -1,9 +1,12 @@
 import { createClient } from '@/lib/supabase/client'
 import { slugify } from '@/lib/utils'
+import type { Database } from '@/types/database'
 
 // Load environment variables
 import * as dotenv from 'dotenv'
 dotenv.config({ path: '.env.local' })
+
+type IdeaInsert = Database['public']['Tables']['ideas']['Insert']
 
 // Seed data for testing
 const seedData = {
@@ -30,7 +33,7 @@ const seedData = {
       problem: 'People struggle to find quality woodworking plans',
       solution: 'Create detailed, step-by-step woodworking plans with video tutorials',
       audience: 'DIY enthusiasts and woodworkers',
-      status: 'Exploring',
+      status: 'Exploring' as const,
       impact: 4,
       confidence: 3,
       effort: 2,
@@ -43,7 +46,7 @@ const seedData = {
       problem: 'New gardeners don\'t know when to plant or how to care for plants',
       solution: 'Mobile app with planting schedules and care reminders',
       audience: 'Beginner gardeners',
-      status: 'Backlog',
+      status: 'Backlog' as const,
       impact: 3,
       confidence: 4,
       effort: 3,
@@ -108,7 +111,7 @@ export async function seedDatabase() {
     if (!hobbiesNiche) throw new Error('Hobbies niche not found')
     
     // Create ideas
-    const ideasWithNiche = seedData.ideas.map(idea => ({
+    const ideasWithNiche: IdeaInsert[] = seedData.ideas.map(idea => ({
       ...idea,
       niche_id: hobbiesNiche.id
     }))
