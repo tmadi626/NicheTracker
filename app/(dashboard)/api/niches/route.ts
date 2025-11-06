@@ -1,14 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getNiches } from '@/lib/queries'
 
 export async function GET(request: NextRequest) {
   try {
-    const niches = await getNiches()
+    const supabase = await createClient()
+    
+    // Get niches
+    const { data: niches, error: nicheError } = await supabase
+      .from('niches')
+      .select('*')
+      .order('created_at', { ascending: false })
+    
+    if (nicheError) throw nicheError
+    if (!niches) {
+      return NextResponse.json({
+        success: true,
+        data: []
+      })
+    }
+    
+    // Get counts for each niche
+    const nichesWithCounts = await Promise.all(
+      niches.map(async (niche) => {
+        try {
+          const [ideasResult, highlightsResult, subredditsResult] = await Promise.all([
+            supabase.from('ideas').select('id', { count: 'exact' }).eq('niche_id', niche.id),
+            supabase.from('highlights').select('id', { count: 'exact' }).eq('niche_id', niche.id),
+            supabase.from('subreddits').select('id', { count: 'exact' }).eq('niche_id', niche.id)
+          ])
+          
+          return {
+            ...niche,
+            ideasCount: ideasResult.count || 0,
+            highlightsCount: highlightsResult.count || 0,
+            subredditsCount: subredditsResult.count || 0
+          }
+        } catch (error) {
+          console.error(`Error getting counts for niche ${niche.id}:`, error)
+          return {
+            ...niche,
+            ideasCount: 0,
+            highlightsCount: 0,
+            subredditsCount: 0
+          }
+        }
+      })
+    )
 
     return NextResponse.json({
       success: true,
-      data: niches
+      data: nichesWithCounts
     })
   } catch (error) {
     console.error('Error fetching niches:', error)
