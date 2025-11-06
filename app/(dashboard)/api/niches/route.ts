@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getSupabaseClient } from '@/lib/supabase/helpers'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = await getSupabaseClient()
     
     // Get niches
     const { data: niches, error: nicheError } = await supabase
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createClient()
+    const supabase = await getSupabaseClient()
     const { slugify } = await import('@/lib/utils')
     
     const slug = slugify(name)
@@ -107,10 +107,17 @@ export async function POST(request: NextRequest) {
       success: true,
       data: nicheWithCounts
     }, { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating niche:', error)
+    // If it's a configuration error, return the helpful message
+    if (error?.message?.includes('Supabase configuration is missing')) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 500 }
+      )
+    }
     return NextResponse.json(
-      { success: false, error: 'Failed to create niche' },
+      { success: false, error: error?.message || 'Failed to create niche' },
       { status: 500 }
     )
   }
